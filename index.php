@@ -1,1 +1,0 @@
-<?= print $_GET['xss'] ?>
