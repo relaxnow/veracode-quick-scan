@@ -46,3 +46,7 @@ To find the appid and sandboxid:
    https://analysiscenter.veracode.com/auth/index.jsp#SandboxView:123:456:789
 7. The appid is the second part ("456") in from this URL, 
    the sandboxid is third party ("789") from this URL.
+
+Download
+--------
+Go to Releases: https://github.com/relaxnow/veracode-quick-scan/releases
