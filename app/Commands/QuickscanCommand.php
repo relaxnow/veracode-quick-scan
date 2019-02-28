@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Commands;
 
 use GuzzleHttp\Client;
@@ -60,8 +59,8 @@ class QuickscanCommand extends Command
         $files = $this->argument('files');
 
         if (empty($files)) {
-            $this->warn("No files given, nothing to do");
-            return;
+            $this->error("No files given, nothing to do");
+            return 1;
         }
 
         $existingFiles = [];
@@ -73,8 +72,8 @@ class QuickscanCommand extends Command
             $existingFiles[] = $file;
         }
         if (empty($existingFiles)) {
-            $this->warn("No files exist.");
-            return;
+            $this->error("No files exist.");
+            return 1;
         }
 
         $lintedFiles = [];
@@ -89,8 +88,8 @@ class QuickscanCommand extends Command
             $lintedFiles[] = $file;
         }
         if (empty($lintedFiles)) {
-            $this->warn("No files that passed lint");
-            return;
+            $this->error("No files that passed lint");
+            return 1;
         }
 
         $zipFileName = tempnam(sys_get_temp_dir(), 'vercode-quick-scan');
@@ -103,8 +102,34 @@ class QuickscanCommand extends Command
         $this->line("Starting upload");
 
         $client = new Client();
+
+        $response = $client->request(
+            "GET",
+            'https://analysiscenter.veracode.com/api/5.0/getapplist.do?include_user_info=true',
+            [
+                'auth' => [ $_ENV['VCUID'], $_ENV['VCPWD']],
+                'debug' => $this->getOutput()->isVerbose(),
+                'http_errors' => false,
+            ]
+        );
+
+        if ($response->getStatusCode() === 401) {
+            $this->error("User '{$_ENV['VCUID']}' is not authorised. Please ensure user is an API user: https://help.veracode.com/reader/LMv_dtSHyb7iIxAQznC~9w/QNoab55SG7moI54f5vU5KQ .");
+            return 1;
+        }
+
+        if ($response->getStatusCode() !== 200) {
+            $this->error("Unknown error accessing Veracode API, please run this command with -v send this to support@veracode.com .");
+            return 1;
+        }
+
+        if ($this->getOutput()->isVerbose()) {
+            $this->line($response->getBody()->getContents());
+        }
+
         $response = $client->request("POST", 'https://analysiscenter.veracode.com/api/5.0/uploadfile.do', [
             'auth' => [$_ENV['VCUID'], $_ENV['VCPWD']],
+            'debug' => $this->getOutput()->isVerbose(),
             'multipart' => [
                 [
                     'name'     => 'app_id',
